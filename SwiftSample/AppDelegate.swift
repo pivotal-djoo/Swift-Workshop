@@ -2,7 +2,6 @@
 //  AppDelegate.swift
 //  SwiftSample
 //
-//  Created by NinjaSupreme on 2016-10-30.
 //  Copyright © 2016 Pivotal. All rights reserved.
 //
 

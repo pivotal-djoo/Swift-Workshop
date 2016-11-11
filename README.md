@@ -1,135 +1,243 @@
 # Swift Workshop
-# Part 1: Create a new iOS project in Swift!
-
-## Update
-
-- Updated instructions for using Xcode 8.1  !!!  (Oct 30, 2016)
+# Part 2: Basic Networking
 
 ## Overview
 - This workshop is aimed for beginners
 - Step by step, follow along style guide
-- Introduces setting up dependencies using [Cocoapods](https://cocoapods.org/)
-- Introduces behavior driven testing using [Quick](https://github.com/Quick/Quick) and [Nimble](https://github.com/Quick/Nimble) frameworks
+- Uses [DispatchQueue](https://developer.apple.com/reference/dispatch/dispatchqueue), [NSData](https://developer.apple.com/reference/foundation/nsdata), and [URLSession](https://developer.apple.com/reference/foundation/urlsession)
 - We will collectively commit a terrible sin and not [TDD](https://www.amazon.ca/Test-Driven-Development-Kent-Beck/dp/0321146530) in this session (TDD warrants a whole separate session, and skipping it will help make each steps bite-sized.)
-- Xcode 8.1 will be used
+- Xcode 8.1 is used in this workshop
 
 ---
 
-## Chapter 1: Setup a new Xcode project  
-#  
+## Chapter 1: DispatchQueue and NSData
 
-1) Create a sample project in Xcode  
-&nbsp;&nbsp;&nbsp;&nbsp;a) From the welcome screen, select **Create a new Xcode project**  
-&nbsp;&nbsp;&nbsp;&nbsp;b) Select **iOS, Single View Application**, then click **Next**  
-&nbsp;&nbsp;&nbsp;&nbsp;c) Name it **SwiftSample**, select Language as **Swift**, and only check **Include Unit Tests**  
-#  
-2) Install **Cocoapods** via terminal command  
- `sudo gem install cocoapods`  
-#  
-3) Init cocoapods on the new sample project.  **cd** into your project directory, then run the below command.  This generates a **Podfile**  
- `pod init`  
-#  
-4) Open generated **Podfile**. Uncomment line  
- `platform :ios, '10.0'`  
-#  
-5) Add dependencies to the **Podfile**'s **SwiftSampleTest** target  
+DispatchQueue is a way to run async blocks  
+In this chapter, we'll leverage async blocks to use a blocking method to load an image
 
+1) Within provided **viewDidload()** method, insert the following to begin showing a loading spinner  
 ```
-pod 'Quick'
-pod 'Nimble'
+imageLoadingIndicator.startAnimating()
 ```
 
-#  
-6) Your **Podfile** should look like the following
-
+2) Declare a URL with IMAGE_URL_STR  
 ```
-# Uncomment the next line to define a global platform for your project
-platform :ios, '10.0'
-
-target 'SwiftSample' do
-  # Comment the next line if you're not using Swift and don't want to use dynamic frameworks
-  use_frameworks!
-  # Pods for SwiftSample
-
-  target 'SwiftSampleTests' do
-    inherit! :search_paths
-    # Pods for testing
-    pod 'Quick'
-    pod 'Nimble'
-  end
-end
+let imageUrl = URL(string: IMAGE_URL_STR)!
 ```
-#
-7) Install these dependencies by running  
- `pod install`  
-#  
-8) Close Xcode and open 'SwiftSample.xcworkspace'  
-#  
-9) Create a **.gitignore** file and add contents from the below link  
- <https://raw.githubusercontent.com/github/gitignore/master/Swift.gitignore>  
-#  
-10) This is a good place to create a first commit  
-#  
+
+3) Create an async block  
+```
+DispatchQueue.global().async {
+	// worker thread
+}
+```
+
+4) Within the async block, fetch image data from URL  
+```
+let imageData = NSData(contentsOf: imageUrl)!
+```
+
+5) Create a main thread block below  
+```
+DispatchQueue.main.async {
+  // main thread
+}
+```
+
+6) Within the main thread block, convert retrieved data to UIImage and set to self.imageView  
+```
+let image = UIImage(data: imageData as Data)
+self.imageView.image = image;
+```
+
+7) Hide the loading spinner  
+```
+imageLoadingIndicator.stopAnimating()
+```
+
+Your code should look like the following  
+```
+imageLoadingIndicator.startAnimating()
+
+let imageUrl = URL(string: IMAGE_URL_STR)!
+
+DispatchQueue.global().async {
+    // worker thread
+    let imageData = NSData(contentsOf: imageUrl)!
+
+    DispatchQueue.main.async {
+        // main thread
+        let image = UIImage(data: imageData as Data)
+        self.imageView.image = image;
+
+        self.imageLoadingIndicator.stopAnimating()
+    }
+}
+```
+
+8) Run the app by pressing <kbd>Cmd</kbd> + <kbd>R</kbd>
 
 ---
 
-## Chapter 2: Write your first test using Quick and Nimble
-#  
-1) Open **Main.storyboard** and select **View** within **View Controller Scene**  
-#  
-2) Add a `UILabel` into the **View**, give it constraints to make it visible on the screen  
-#  
-3) Open **ViewController.swift** on the right side pane by holding down the <kbd>⌥ option</kbd> key  
-#  
-4) Create a `UIOutlet` by right mouse button dragging the label from the screen into the code file.  Name it **label**  
-#  
-5) On the left panel, right click on `SwiftSampleTests` folder, right click to bring up a menu, then select **New File**  
-#  
-6) Select **iOS, Swift File**, and click **Next**, name the file **ViewControllerSpec**  
-#  
-7) Inside newly created **ViewControllerSpec.swift**, add the following code
+## Chapter 2: URLSession
 
+URLSession is Apple's update to NSURLConnection.  URLSession provides richer features compared to NSData such as handling worker threads, and allowing for more customized network calls.  
+In this chapter, we'll make a network call to an endpoint that requires a header value and returns a JSON data.
+
+1) Declare a **URL** within provided `viewDidLoad()` methods
 ```
-import Quick
-import Nimble
+let beveragesUrl = URL(string: BEVERAGES_URL_STR)!
+```
 
-@testable import SwiftSample
+2) Declare a **URLRequest** giving it the *beveragesUrl*
+```
+var request = URLRequest(url: beveragesUrl)
+```
 
-class ViewControllerSpec: QuickSpec {
-  override func spec() {
-    // test code goes here
-  }
+3) Set http method of the request
+```
+request.httpMethod = "GET"
+```
+
+4) Add **BEVERAGES_API_TOKEN** as a header value of the request
+```
+request.setValue("Token \(BEVERAGES_API_TOKEN)", forHTTPHeaderField: "Authorization")
+```
+
+5) Obtain a **URLSession**
+```
+let session = URLSession.shared
+```
+
+6) Add a task to the session providing it the request object built previously
+```
+let task = session.dataTask(with: request) {
+	(data, response, error) -> Void in
+
+	// main thread
 }
 ```
 
-8) Inside **spec** function, create the test subject as follows:  
-`var subject: ViewController!`  
-#  
-9) Below that line, create a **beforeEach** block, and add the following code  
-
+7) Check response for a **200** status code
 ```
-beforeEach {
-    let storyboard = UIStoryboard(name: "Main", bundle: Bundle.main)
-    subject = storyboard.instantiateInitialViewController() as! ViewController
+let httpResponse = response as! HTTPURLResponse
+let statusCode = httpResponse.statusCode
 
-    expect(subject.view).notTo(beNil())
+if (statusCode == 200) {
+	// parse the data here
 }
 ```
-#  
-10) Below the **beforeEach** block, create a **describe** block
 
+8) Pass the retrieved data to the parse method provided
 ```
-describe("label text") {
+self.parseJson(with:data!)
+```
+
+9) Hide the loading spinner  
+```
+self.beveragesLoadingIndicator.stopAnimating()
+```
+
+10) Below where we declared **task**, insert the following to begin showing a loading spinner  
+```
+beveragesLoadingIndicator.startAnimating()
+```
+
+11) Kick off the task which will begin fetching data  
+```
+task.resume()
+```
+
+Your code should look like the following  
+```
+let beveragesUrl = URL(string: BEVERAGES_URL_STR)!
+
+var request = URLRequest(url: beveragesUrl)
+request.httpMethod = "GET"
+request.setValue("Token \(BEVERAGES_API_TOKEN)", forHTTPHeaderField: "Authorization")
+
+let session = URLSession.shared
+let task = session.dataTask(with: request) {
+    (data, response, error) -> Void in
+
+    let httpResponse = response as! HTTPURLResponse
+    let statusCode = httpResponse.statusCode
+
+    if (statusCode == 200) {
+        self.parseJson(with:data!)
+    }
+
+    self.beveragesLoadingIndicator.stopAnimating()
+}
+
+beveragesLoadingIndicator.startAnimating()
+task.resume()
+```
+
+12) In the **parseJson** method, use **JSONSerialization** to read the JSON data  
+```
+do {
+	let jsonDict = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? NSDictionary
+
+	// update table with new data
+} catch {
+    print("JSON parsing failed")
 }
 ```
-#  
-11) Within the **describe** block, add an **it** block
 
+13) Look for array with key **"result"**  
 ```
-it("should have a nice greeting") {
-    expect(subject.label.text).to(equal("Hello World!"))
+if let results = jsonDict?["result"] as? NSArray {
+
 }
 ```
-#   
-12) Run the test via **Menu -> Product -> Test**, or by pressing <kbd>Cmd</kbd> + <kbd>u</kbd>
-#  
+
+14) Iterate through the results array  
+```
+for beverageData in results {
+	// parse individual beverageData
+}
+```
+
+15) Retrieve **name** and **category** of each beverage  
+```
+let beverageDictionary = beverageData as? NSDictionary
+let name = beverageDictionary?["name"] as! String
+let category = beverageDictionary?["primary_category"] as! String
+```
+
+16) Create a **Beverage** struct instance for each beverage and append to provided array  **self.beverages**
+```
+let beverage = Beverage(name: name, category: category)
+self.beverages.append(beverage)
+```
+
+17) After iterating, reload table view  
+```
+self.beveragesTable.reloadData()
+```
+
+Your **parseJson()** method should look like the following  
+```
+func parseJson(with data: Data) {
+    do {
+        let jsonDict = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? NSDictionary
+
+        if let results = jsonDict?["result"] as? NSArray {
+            for beverageData in results {
+                let beverageDictionary = beverageData as? NSDictionary
+                let name = beverageDictionary?["name"] as! String
+                let category = beverageDictionary?["primary_category"] as! String
+                let beverage = Beverage(name: name, category: category)
+                self.beverages.append(beverage)
+            }
+
+            self.beveragesTable.reloadData()
+        }
+    } catch {
+        print("JSON parsing failed")
+    }
+}
+```
+
+18) Run the app by pressing <kbd>Cmd</kbd> + <kbd>R</kbd>
