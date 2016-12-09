@@ -7,51 +7,144 @@
 
 import UIKit
 import Foundation
+import RxSwift
+import RxCocoa
 
 class ViewController: UIViewController {
 
-    let IMAGE_URL_STR = "https://static.pexels.com/photos/6506/alcohol-bar-drinks-party.jpg"
-    let BEVERAGES_URL_STR = "https://lcboapi.com/products"
-    let BEVERAGES_API_TOKEN = "MDphOWE3NjhjYS1hN2JlLTExZTYtODg4Yi02MzIzMjY0ZTU1M2I6Z0UydzVpNnkwTEFlWmhRTmF6T1luQlRCMVhMbjlzV1Mwd3px"
-    
+    let IMAGE_URL_STR = "https://placekitten.com/500/1000"
+    let CITIES_LIST = [ "Paris", "London", "Washington", "New York", "Ottawa", "Toronto" ]
+    let ARTISTS = [ "BEATLES, THE",
+                    "MADONNA",
+                    "JOHN, ELTON",
+                    "PRESLEY, ELVIS",
+                    "CAREY, MARIAH",
+                    "WONDER, STEVIE",
+                    "JACKSON, JANET",
+                    "JACKSON, MICHAEL",
+                    "HOUSTON, WHITNEY",
+                    "THE ROLLING STONES" ]
+
     @IBOutlet weak var imageView: UIImageView!
     @IBOutlet weak var imageLoadingIndicator: UIActivityIndicatorView!
-    @IBOutlet weak var beveragesTable: UITableView!
-    @IBOutlet weak var beveragesLoadingIndicator: UIActivityIndicatorView!
     
-    var beverages = [Beverage]()
+    let disposeBag = DisposeBag()
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        beveragesTable.delegate = self;
-        beveragesTable.dataSource = self;
-        
         imageLoadingIndicator.hidesWhenStopped = true
-        beveragesLoadingIndicator.hidesWhenStopped = true
         
         // Start here
         
+        // 2. 3. An observable and a subscriber
+        
+        let myObservable: Observable<String> = Observable.create { observer in
+            observer.on(.next("Hello world!"))
+            observer.on(.completed)
+            
+            return Disposables.create()
+        }
+        
+        myObservable.subscribe(onNext: { n in
+            print(n)
+        }, onError: { error in
+            print(error)
+        }, onCompleted: {
+            print("Completed!")
+        }).addDisposableTo(disposeBag)
+      
+        
+        // 3. Simpler Versions
+        // 3.1 .just
+        
+        Observable.just("Hello world!").subscribe(onNext: { n in
+            print(n)
+        }).addDisposableTo(disposeBag)
+        
+        // 3.2 .from
+        
+        Observable.from(CITIES_LIST).subscribe(onNext: { n in
+            print(n)
+        }).addDisposableTo(disposeBag)
+        
+        // 5 Operators
+        // 5.1 .map
+        
+        Observable.from(CITIES_LIST)
+            .map { city -> String in
+                return "Welcome to \(city)"
+            }.subscribe(onNext: { n in
+                print(n)
+            }).addDisposableTo(disposeBag)
+        
+        // 5.2 .filter
+        
+        Observable.from(CITIES_LIST)
+            .filter { city in
+                return city.characters.count > 6
+            }.map { city in
+                return "Welcome to \(city)"
+            }.subscribe(onNext: { n in
+                print(n)
+            }).addDisposableTo(disposeBag)
+        
+        // 5.3 .toArray
+        
+        Observable.from(CITIES_LIST)
+            .filter { city in
+                return city.characters.count > 6
+            }.map { city in
+                return "Welcome to \(city)"
+            }.toArray()
+            .subscribe(onNext: { n in
+                print(n)
+            }).addDisposableTo(disposeBag)
+        
+        // 5.4 .flatMap
+        
+        self.getArtists()
+            .flatMap { artists in
+                return Observable.from(artists)
+            }.flatMap { artist in
+                return self.rearrangeName(name: artist)
+            }.subscribe(onNext: { n in
+                print(n)
+            }).addDisposableTo(disposeBag)
+        
+        // 6. Schedulers
+        
+        imageLoadingIndicator.startAnimating()
+        
+        Observable.just(IMAGE_URL_STR)
+            .subscribeOn(ConcurrentDispatchQueueScheduler(qos: .background))
+            .map { urlStr -> UIImage in
+                let imageUrl = URL(string: urlStr)!
+                let imageData = NSData(contentsOf: imageUrl)!
+                return UIImage(data: imageData as Data)!
+            }.observeOn(MainScheduler.instance)
+            .subscribe(onNext: { image in
+                self.imageLoadingIndicator.stopAnimating()
+                self.imageView.image = image
+            }).addDisposableTo(disposeBag)
     }
     
-    func parseJson(with data: Data) {
-        
-    }
-}
-
-extension ViewController: UITableViewDataSource, UITableViewDelegate {
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return beverages.count
+    func getArtists() -> Observable<Array<String>> {
+        return Observable.just(ARTISTS)
     }
     
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let beverage = beverages[indexPath.row]
-        
-        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: "ElementCell")
-        
-        cell.textLabel?.text = beverage.name
-        cell.detailTextLabel?.text = beverage.category
-        
-        return cell
+    func rearrangeName(name: String) -> Observable<String> {
+        return Observable.just(name).map { name in
+            guard let indexOfComma = name.characters.index(of: ",") else {
+                return name
+            }
+            
+            let firstNameIndex = name.index(indexOfComma, offsetBy: +2)
+            let firstNameRange = Range(uncheckedBounds: (lower: firstNameIndex, upper: name.endIndex))
+            let lastNameRange = Range(uncheckedBounds: (lower: name.startIndex, upper: indexOfComma))
+            var rearrangedName = name[firstNameRange]
+            rearrangedName += " \(name[lastNameRange])"
+            return rearrangedName
+        }
     }
 }

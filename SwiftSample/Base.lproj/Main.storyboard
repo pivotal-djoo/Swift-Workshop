@@ -23,44 +23,25 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="FWZ-10-gNI">
-                                <rect key="frame" x="0.0" y="0.0" width="375" height="200"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="200" id="6pc-8F-VIk"/>
-                                </constraints>
+                                <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                             </imageView>
-                            <activityIndicatorView hidden="YES" opaque="NO" contentMode="center" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="x4I-7N-YCw">
-                                <rect key="frame" x="0.0" y="0.0" width="375" height="200"/>
-                            </activityIndicatorView>
-                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="44" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="l3s-NO-rYg">
-                                <rect key="frame" x="0.0" y="200" width="375" height="467"/>
-                                <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
-                            </tableView>
-                            <activityIndicatorView hidden="YES" opaque="NO" contentMode="center" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="YQA-eT-Et1">
-                                <rect key="frame" x="0.0" y="200" width="375" height="467"/>
+                            <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="x4I-7N-YCw">
+                                <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                             </activityIndicatorView>
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="FWZ-10-gNI" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" id="0ix-nE-2TJ"/>
-                            <constraint firstItem="YQA-eT-Et1" firstAttribute="leading" secondItem="l3s-NO-rYg" secondAttribute="leading" id="1g2-od-RnI"/>
                             <constraint firstItem="x4I-7N-YCw" firstAttribute="bottom" secondItem="FWZ-10-gNI" secondAttribute="bottom" id="72n-0P-nTr"/>
                             <constraint firstItem="FWZ-10-gNI" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="topMargin" id="9Xv-Y9-rDJ"/>
                             <constraint firstItem="x4I-7N-YCw" firstAttribute="trailing" secondItem="FWZ-10-gNI" secondAttribute="trailing" id="Ew0-1p-Jk8"/>
-                            <constraint firstItem="YQA-eT-Et1" firstAttribute="top" secondItem="l3s-NO-rYg" secondAttribute="top" id="GbJ-9W-2SH"/>
-                            <constraint firstItem="YQA-eT-Et1" firstAttribute="bottom" secondItem="l3s-NO-rYg" secondAttribute="bottom" id="IvX-tc-Jgt"/>
-                            <constraint firstItem="FWZ-10-gNI" firstAttribute="bottom" secondItem="l3s-NO-rYg" secondAttribute="top" id="OoH-mk-bhf"/>
-                            <constraint firstItem="YQA-eT-Et1" firstAttribute="trailing" secondItem="l3s-NO-rYg" secondAttribute="trailing" id="S5f-4p-qdS"/>
+                            <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="FWZ-10-gNI" secondAttribute="bottom" id="Qf2-Ds-29c"/>
                             <constraint firstAttribute="trailing" secondItem="FWZ-10-gNI" secondAttribute="trailing" id="WE7-PK-FMt"/>
                             <constraint firstItem="x4I-7N-YCw" firstAttribute="leading" secondItem="FWZ-10-gNI" secondAttribute="leading" id="iGY-iB-cu9"/>
-                            <constraint firstItem="l3s-NO-rYg" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" id="nGU-S1-Ca9"/>
                             <constraint firstItem="x4I-7N-YCw" firstAttribute="top" secondItem="FWZ-10-gNI" secondAttribute="top" id="oCg-9V-s0V"/>
-                            <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="l3s-NO-rYg" secondAttribute="bottom" id="rn6-fB-yTF"/>
-                            <constraint firstAttribute="trailing" secondItem="l3s-NO-rYg" secondAttribute="trailing" id="ueq-a6-2GF"/>
                         </constraints>
                     </view>
                     <connections>
-                        <outlet property="beveragesLoadingIndicator" destination="YQA-eT-Et1" id="bv4-zL-dup"/>
-                        <outlet property="beveragesTable" destination="l3s-NO-rYg" id="7bf-kd-ihR"/>
                         <outlet property="imageLoadingIndicator" destination="x4I-7N-YCw" id="VQp-bg-6DE"/>
                         <outlet property="imageView" destination="FWZ-10-gNI" id="j94-ab-JOr"/>
                     </connections>

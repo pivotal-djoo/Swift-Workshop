@@ -1,243 +1,225 @@
 # Swift Workshop
-# Part 2: Basic Networking
+# Part 3: A Brief Intro to ReactiveX with RxSwift
 
 ## Overview
 - This workshop is aimed for beginners
 - Step by step, follow along style guide
-- Uses [DispatchQueue](https://developer.apple.com/reference/dispatch/dispatchqueue), [NSData](https://developer.apple.com/reference/foundation/nsdata), and [URLSession](https://developer.apple.com/reference/foundation/urlsession)
-- We will collectively commit a terrible sin and not [TDD](https://www.amazon.ca/Test-Driven-Development-Kent-Beck/dp/0321146530) in this session (TDD warrants a whole separate session, and skipping it will help make each steps bite-sized.)
-- Xcode 8.1 is used in this workshop
+- Uses [RxSwift](https://github.com/ReactiveX/RxSwift), official port from [ReactiveX](http://reactivex.io/)
+- Uses Xcode 8.1 and Swift 3.0
 
 ---
 
-## Chapter 1: DispatchQueue and NSData
+## 1. Setting Up (Optional)  
 
-DispatchQueue is a way to run async blocks  
-In this chapter, we'll leverage async blocks to use a blocking method to load an image
+This part is optional.  Please complete this if you are curious about how to setup your project with correct framework dependencies.  This workshop project uses Cocoapods for managing project dependencies.  
 
-1) Within provided **viewDidload()** method, insert the following to begin showing a loading spinner  
-```
-imageLoadingIndicator.startAnimating()
-```
+1) Create a new folder named **workshop-p3**  
 
-2) Declare a URL with IMAGE_URL_STR  
+2) Clone this repository by running the command:  
+
 ```
-let imageUrl = URL(string: IMAGE_URL_STR)!
+git clone git@github.com:xtreme-david-joo/Swift-Workshop.git
 ```
 
-3) Create an async block  
+3) Enter the project directory "Swift-Workshop" by using *cd* command.  Then, run command:  
+
 ```
-DispatchQueue.global().async {
-	// worker thread
+open SwiftSample.xcworkspace
+```
+
+4) In Xcode, find **Pods** within the project navigator, unfold it, then open **Podfile**.
+
+5) In **Podfile**, add the following lines below line `# Pods for SwiftSample`  
+
+```
+  pod 'RxSwift',    '~> 3.0'
+  pod 'RxCocoa',    '~> 3.0'
+```
+
+6) Run `pod install` in terminal.  
+
+7) Once the command completes, you're ready to go.  
+
+---
+
+## 2. An Observable and a Subscriber  
+
+An observable emits items.  A subscriber consumes items.
+
+1) Declare an observable like below.  
+
+```
+let myObservable: Observable<String> = Observable.create { observer in
+    observer.on(.next("Hello world!"))
+    observer.on(.completed)
+    
+    return Disposables.create()
 }
 ```
 
-4) Within the async block, fetch image data from URL  
+2) Subscribe to this observable.  
+
 ```
-let imageData = NSData(contentsOf: imageUrl)!
+myObservable.subscribe(onNext: { n in
+    print(n)
+}, onError: { error in
+    print(error)
+}, onCompleted: {
+    print("Completed!")
+}).addDisposableTo(disposeBag)
 ```
 
-5) Create a main thread block below  
+3) Test out the code by running it.  The results should look like the below.  
+
 ```
-DispatchQueue.main.async {
-  // main thread
+Hello world!
+Completed!
+```
+
+## 3. Simpler Versions
+
+There are many simpler and different ways to create observables.  Operators such as **create**, **just** and **from** are called creation operators.
+
+1) **just** operator produces exact same observable as one from above, emitting just one item.  
+
+```
+Observable.just("Hello world!").subscribe(onNext: { n in
+    print(n)
+}).addDisposableTo(disposeBag)
+```
+
+2) **from** operator creates an observable which emits items in a given array.  
+
+```
+Observable.from(CITIES_LIST).subscribe(onNext: { n in
+    print(n)
+}).addDisposableTo(disposeBag)
+```
+
+## 4. What is a DisposeBag?
+
+DisposeBag is used by the library to keep track of Observer objects and help deal with ARC and memory management.  Without using the **DisposeBag** you may get a retain cycle or objects getting deallocated prematurely.  
+
+1) Declare a **DisposeBag** instance somewhere in your class.  
+
+```
+let disposeBag = DisposeBag()
+```
+
+2) Create and return a **Disposable** instance in Observables.  
+
+```
+let myObservable: Observable<String> = Observable.create { observer in
+    observer.on(.next("Hello world!"))
+    observer.on(.completed)
+    
+    return Disposables.create()
 }
+
 ```
 
-6) Within the main thread block, convert retrieved data to UIImage and set to self.imageView  
+3) When subscribing, add the **Disposable** to **DisposeBag**.  
+
 ```
-let image = UIImage(data: imageData as Data)
-self.imageView.image = image;
+myObservable.subscribe(onNext: { n in
+    print(n)
+}, onError: { error in
+    print(error)
+}, onCompleted: {
+    print("Completed!")
+}).addDisposableTo(disposeBag)
 ```
 
-7) Hide the loading spinner  
+More information on DisposeBag can be found here: [RayWenderlich](https://www.raywenderlich.com/138547/getting-started-with-rxswift-and-rxcocoa), [Rx-Marin](http://rx-marin.com/post/rxswift-timer-sequence-manual-dispose-bag/).
+
+## 5. Transformation Operators
+
+1) **map** operator can change a received data and emit it again.  
+
 ```
-imageLoadingIndicator.stopAnimating()
+Observable.from(CITIES_LIST)
+    .map { city -> String in
+        return "Welcome to \(city)"
+    }.subscribe(onNext: { n in
+        print(n)
+    }).addDisposableTo(disposeBag)
 ```
 
-Your code should look like the following  
+
+
+2) **filter** operator only emits items that satisfy a given condition.  
+
+```
+Observable.from(CITIES_LIST)
+    .filter { city in
+        return city.characters.count > 6
+    }.map { city in
+        return "Welcome to \(city)"
+    }.subscribe(onNext: { n in
+        print(n)
+    }).addDisposableTo(disposeBag)
+```
+
+3) **toArray** operator collects all individual items emitted, then emits one list.  
+
+```
+Observable.from(CITIES_LIST)
+    .filter { city in
+        return city.characters.count > 6
+    }.map { city in
+        return "Welcome to \(city)"
+    }.toArray()
+    .subscribe(onNext: { n in
+        print(n)
+    }).addDisposableTo(disposeBag)
+```
+
+4) **flatMap** operator allows for nesting observables.  
+
+```
+self.getArtists()
+    .flatMap { artists in
+        return Observable.from(artists)
+    }.flatMap { artist in
+        return self.rearrangeName(name: artist)
+    }.subscribe(onNext: { n in
+        print(n)
+    })
+```
+
+Learn more operators [here](http://reactivex.io/documentation/operators.html)  
+
+
+## 6. Schedulers
+
+You can use schedulers to ask which thread observer and subscriber would each run on.  By default, everything on an observable's pipeline runs on the same thread as the subscriber's.  Utility operators .observeOn and .subscribeOn can customize which schedulers each of them will run on.
+ 
+**subscribeOn** tells which scheduler to start processing on.  Placement of this method has no effect.  
+**observeOn** causes all operations below it to be executed on the specified scheduler.  
+ 
+The below code snippet fetches an image in a background thread, then sets it to UI in main thread.  
+ 
 ```
 imageLoadingIndicator.startAnimating()
 
-let imageUrl = URL(string: IMAGE_URL_STR)!
-
-DispatchQueue.global().async {
-    // worker thread
-    let imageData = NSData(contentsOf: imageUrl)!
-
-    DispatchQueue.main.async {
-        // main thread
-        let image = UIImage(data: imageData as Data)
-        self.imageView.image = image;
-
+Observable.just(IMAGE_URL_STR)
+    .subscribeOn(ConcurrentDispatchQueueScheduler(qos: .background))
+    .map { urlStr -> UIImage in
+        let imageUrl = URL(string: urlStr)!
+        let imageData = NSData(contentsOf: imageUrl)!
+        return UIImage(data: imageData as Data)!
+    }.observeOn(MainScheduler.instance)
+    .subscribe(onNext: { image in
         self.imageLoadingIndicator.stopAnimating()
-    }
-}
+        self.imageView.image = image
+    }).addDisposableTo(disposeBag)
 ```
 
-8) Run the app by pressing <kbd>Cmd</kbd> + <kbd>R</kbd>
 
----
+#### Next session will cover error handling and testing.
 
-## Chapter 2: URLSession
 
-URLSession is Apple's update to NSURLConnection.  URLSession provides richer features compared to NSData such as handling worker threads, and allowing for more customized network calls.  
-In this chapter, we'll make a network call to an endpoint that requires a header value and returns a JSON data.
 
-1) Declare a **URL** within provided `viewDidLoad()` methods
-```
-let beveragesUrl = URL(string: BEVERAGES_URL_STR)!
-```
 
-2) Declare a **URLRequest** giving it the *beveragesUrl*
-```
-var request = URLRequest(url: beveragesUrl)
-```
 
-3) Set http method of the request
-```
-request.httpMethod = "GET"
-```
 
-4) Add **BEVERAGES_API_TOKEN** as a header value of the request
-```
-request.setValue("Token \(BEVERAGES_API_TOKEN)", forHTTPHeaderField: "Authorization")
-```
-
-5) Obtain a **URLSession**
-```
-let session = URLSession.shared
-```
-
-6) Add a task to the session providing it the request object built previously
-```
-let task = session.dataTask(with: request) {
-	(data, response, error) -> Void in
-
-	// main thread
-}
-```
-
-7) Check response for a **200** status code
-```
-let httpResponse = response as! HTTPURLResponse
-let statusCode = httpResponse.statusCode
-
-if (statusCode == 200) {
-	// parse the data here
-}
-```
-
-8) Pass the retrieved data to the parse method provided
-```
-self.parseJson(with:data!)
-```
-
-9) Hide the loading spinner  
-```
-self.beveragesLoadingIndicator.stopAnimating()
-```
-
-10) Below where we declared **task**, insert the following to begin showing a loading spinner  
-```
-beveragesLoadingIndicator.startAnimating()
-```
-
-11) Kick off the task which will begin fetching data  
-```
-task.resume()
-```
-
-Your code should look like the following  
-```
-let beveragesUrl = URL(string: BEVERAGES_URL_STR)!
-
-var request = URLRequest(url: beveragesUrl)
-request.httpMethod = "GET"
-request.setValue("Token \(BEVERAGES_API_TOKEN)", forHTTPHeaderField: "Authorization")
-
-let session = URLSession.shared
-let task = session.dataTask(with: request) {
-    (data, response, error) -> Void in
-
-    let httpResponse = response as! HTTPURLResponse
-    let statusCode = httpResponse.statusCode
-
-    if (statusCode == 200) {
-        self.parseJson(with:data!)
-    }
-
-    self.beveragesLoadingIndicator.stopAnimating()
-}
-
-beveragesLoadingIndicator.startAnimating()
-task.resume()
-```
-
-12) In the **parseJson** method, use **JSONSerialization** to read the JSON data  
-```
-do {
-	let jsonDict = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? NSDictionary
-
-	// update table with new data
-} catch {
-    print("JSON parsing failed")
-}
-```
-
-13) Look for array with key **"result"**  
-```
-if let results = jsonDict?["result"] as? NSArray {
-
-}
-```
-
-14) Iterate through the results array  
-```
-for beverageData in results {
-	// parse individual beverageData
-}
-```
-
-15) Retrieve **name** and **category** of each beverage  
-```
-let beverageDictionary = beverageData as? NSDictionary
-let name = beverageDictionary?["name"] as! String
-let category = beverageDictionary?["primary_category"] as! String
-```
-
-16) Create a **Beverage** struct instance for each beverage and append to provided array  **self.beverages**
-```
-let beverage = Beverage(name: name, category: category)
-self.beverages.append(beverage)
-```
-
-17) After iterating, reload table view  
-```
-self.beveragesTable.reloadData()
-```
-
-Your **parseJson()** method should look like the following  
-```
-func parseJson(with data: Data) {
-    do {
-        let jsonDict = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? NSDictionary
-
-        if let results = jsonDict?["result"] as? NSArray {
-            for beverageData in results {
-                let beverageDictionary = beverageData as? NSDictionary
-                let name = beverageDictionary?["name"] as! String
-                let category = beverageDictionary?["primary_category"] as! String
-                let beverage = Beverage(name: name, category: category)
-                self.beverages.append(beverage)
-            }
-
-            self.beveragesTable.reloadData()
-        }
-    } catch {
-        print("JSON parsing failed")
-    }
-}
-```
-
-18) Run the app by pressing <kbd>Cmd</kbd> + <kbd>R</kbd>
